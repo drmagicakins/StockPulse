@@ -1,0 +1,61 @@
+# Secrets and local config: never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+auth.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# Backend (Laravel)
+/backend/vendor/
+/backend/node_modules/
+/backend/storage/*.key
+/backend/storage/logs/*
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/bootstrap/cache/*
+/backend/public/hot
+/backend/public/storage
+/backend/.phpunit.result.cache
+/backend/.phpunit.cache/
+/backend/coverage/
+/backend/.php-cs-fixer.cache
+
+# Frontend (Vue)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+/frontend/.vite/
+*.local
+
+# Docker data and local overrides
+/docker/data/
+/docker/volumes/
+docker-compose.override.yml
+
+# Android (Phase 6)
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+
+# Logs, temp, backups
+*.log
+npm-debug.log*
+/tmp/
+*.sql
+*.dump
+*.bak

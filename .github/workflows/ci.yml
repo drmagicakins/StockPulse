@@ -1,0 +1,84 @@
+# WP 1A skeleton. Jobs skip cleanly until backend/ and frontend/ contain a project.
+# Lint, static analysis and test steps are added in WP 1C (backend) and WP 1H (frontend).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Repository hygiene (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pre-commit
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  backend:
+    name: Backend (Laravel)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        working-directory: .
+        run: |
+          if [ -f backend/composer.json ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "No backend project yet - skipping"; fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, gd, redis, zip
+          tools: composer:v2
+      - if: steps.detect.outputs.present == 'true'
+        run: composer validate --strict
+      - if: steps.detect.outputs.present == 'true'
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - if: steps.detect.outputs.present == 'true'
+        run: composer audit
+
+  frontend:
+    name: Frontend (Vue)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        working-directory: .
+        run: |
+          if [ -f frontend/package.json ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "No frontend project yet - skipping"; fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - if: steps.detect.outputs.present == 'true'
+        run: npm ci
+      - if: steps.detect.outputs.present == 'true'
+        run: npm run lint --if-present
+      - if: steps.detect.outputs.present == 'true'
+        run: npm run typecheck --if-present
+      - if: steps.detect.outputs.present == 'true'
+        run: npm test --if-present
+      - if: steps.detect.outputs.present == 'true'
+        run: npm run build --if-present
+      - if: steps.detect.outputs.present == 'true'
+        # Informational for now; becomes a blocking gate in WP 1I.
+        continue-on-error: true
+        run: npm audit --audit-level=high

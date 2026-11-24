@@ -3,12 +3,13 @@
 Last updated: 2026-11-23
 
 ## Current phase
-Phase 1 APPROVED (2026-11-23), not yet started. No code written. Pre-flight must be run in the project workspace (Claude Code, CodeGPT or any assistant).
+Phase 1 in progress. WP 1A files delivered (not yet applied/verified in the owner's repo until the owner commits and CI runs). No application code yet.
 
-## Environment checks
-NOT PERFORMED. The planning session had no workspace access. First action in Claude Code: inspect the workspace, Git status/branch, and run version checks for PHP, Composer, Node, npm, Docker, PostgreSQL. Record the results here.
+## Environment checks (owner-run preflight, 2026-11-23, Windows host)
+New project; repo has one initial commit on `main`; no app code. PHP 8.4.14 (Herd), Composer 2.8.12, Node 20.19.6, npm 11.7.0, Docker 29.7.2, Compose v5.4.0, psql not installed (fine, Postgres runs in Docker), Java 1.8 (Android phase needs 17+), WSL had only docker-desktop (Ubuntu to be installed). All required PHP extensions present on host. No blocking incompatibilities. Note: Node 20 EOL; use Node 22+ in containers/CI (CI skeleton already uses 22). Laravel stable version to be verified at install in WP 1C.
 
 ## Completed
+- WP 1A deliverables (tooling, CI skeleton, community docs, folder structure, DEV_ENVIRONMENT.md). Syntax of YAML files checked locally; CI run on GitHub not yet observed.
 - ARCHITECTURE.md, ER_DIAGRAM.md, DATABASE_SCHEMA.md, SRS.md, DEVELOPMENT_ROADMAP.md, SESSION-HANDOFF.md (planning drafts).
 
 ## Pending
@@ -35,5 +36,9 @@ Modular monolith; shared DB + RLS tenancy; bigint PK + UUIDv7; immutable ledgers
 5. (RESOLVED) Cloud-hosted, containerised, provider-agnostic; AWS recommended initial target.
 6. (RESOLVED) Scale targets in ARCHITECTURE section 14. Still open: specific latency targets and RTO/RPO.
 
+## Decision log additions
+D8: Development in WSL2 Ubuntu + Docker Desktop (owner-approved).
+
 ## Exact next task
-Run pre-flight (workspace, Git, versions), report findings, then begin WP 1A per PHASE-1-PLAN.md. Open decisions 1, 2, 3, 5, 6 are covered by plan assumptions A1-A6 unless the owner changes them.
+1. Owner: follow docs/DEV_ENVIRONMENT.md, apply the 1A files, commit on branch `phase-1/foundation`, push, and confirm the CI workflow runs (hygiene job green, backend/frontend jobs skip).
+2. Then WP 1B (Docker environment): compose services app, nginx, postgres, pgbouncer (optional), redis, queue worker, scheduler, mail catcher, MinIO; `.env.example`; non-superuser DB role. Needs owner approval after 1A is confirmed.
