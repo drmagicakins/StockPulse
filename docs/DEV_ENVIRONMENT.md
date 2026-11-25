@@ -54,4 +54,4 @@ Expected: preflight prints versions without the WSL error. PHP/Composer/Node may
 
 ## Notes
 - Windows Laravel Herd (PHP on Windows) is not part of this setup and does not conflict.
-- Ports used later: 80/443 (nginx), 5432 (PostgreSQL), 6379 (Redis), 9000/9001 (MinIO), 8025 (mail catcher). Free these on the host.
+- Host ports used by the dev stack (all on 127.0.0.1): 8080 (nginx), 5433 (PostgreSQL), 6433 (PgBouncer), 6380 (Redis), 9000/9001 (RustFS S3 API/console), 8025/1025 (Mailpit), 5173 (Vite). They are configurable in `.env`.

@@ -59,3 +59,6 @@ npm-debug.log*
 *.sql
 *.dump
 *.bak
+
+# WP 1B
+verify-1b.log

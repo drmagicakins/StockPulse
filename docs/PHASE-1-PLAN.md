@@ -85,9 +85,14 @@ Please reply with one of:
 ## 14. Phase 1 additions driven by owner decisions (2026-11-23)
 These are small, additive changes to the approved work packages, not new scope:
 - 1B: Redis configured for cache, queue and session drivers; app containers stateless; optional PgBouncer service in Compose to prove pooling compatibility.
-- 1C: Filesystem access only through Laravel's S3-compatible disk abstraction (MinIO in dev); no provider-specific SDK calls in domain code; secrets via env behind a config interface.
+- 1C: Filesystem access only through Laravel's S3-compatible disk abstraction (RustFS in dev); no provider-specific SDK calls in domain code; secrets via env behind a config interface.
 - 1D: Tenant context uses `SET LOCAL` per transaction (pooling-safe); tests run through PgBouncer in transaction mode.
 - 1D/1F: Migrations use tenant-leading indexes and keyset pagination conventions from day one; a `docs/PERFORMANCE_NOTES.md` stub records scale targets (ARCHITECTURE section 14).
 - 1A: CI includes deploy-path scaffolding under `/deploy` (provider-neutral); AWS specifics isolated in `/deploy/aws` later.
 - Payment adapter interface is documented now (ARCHITECTURE section 16) but implemented in Phase 5.
 - Load testing starts in Phase 3; Phase 1 only establishes conventions.
+
+## 15. WP 1B decisions (2026-11-24)
+- PostgreSQL major 18 (not 17): latest major with a confirmed official image; 19.0 not yet adopted (see ARCHITECTURE D9).
+- MinIO replaced by RustFS for dev object storage (see D10).
+- Database roles: `stockpulse_owner` (migrations) and `stockpulse_app` (runtime, subject to RLS); `stockpulse_test` database for the tenant-leak suite.
