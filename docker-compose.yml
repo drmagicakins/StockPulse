@@ -1,6 +1,6 @@
 # StockPulse local development stack (WP 1B).
 # Infrastructure (postgres, redis, rustfs, mailpit) runs by default.
-# Profile "pool": PgBouncer.  Profile "app": php-fpm, nginx, queue, scheduler, node (needs backend/ from WP 1C).
+# Profile "pool": PgBouncer.  Profile "app": php-fpm, nginx, horizon (queues), scheduler, node (needs the backend: make backend-install).
 # DEV ONLY: all published ports are bound to 127.0.0.1. Do not use this file as-is in production.
 name: stockpulse
 
@@ -157,18 +157,19 @@ services:
       - ./backend/public:/var/www/html/public:ro
     networks: [stockpulse]
 
-  queue:
+  horizon:
     <<: *php-runtime
     profiles: [app]
     pull_policy: never
-    restart: "no"   # becomes unless-stopped in WP 1C once artisan exists
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: ["php", "artisan", "horizon"]
 
   scheduler:
     <<: *php-runtime
     profiles: [app]
     pull_policy: never
-    restart: "no"   # becomes unless-stopped in WP 1C once artisan exists
+    restart: unless-stopped
     command: ["php", "artisan", "schedule:work"]
 
   node:

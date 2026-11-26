@@ -7,7 +7,7 @@ StockPulse is an enterprise supermarket management and intelligent inventory pla
 Owned, developed and operated by **Mart Code International Technologies Limited**.
 
 ## Status
-Phase 1 (Project Foundation) in progress. WP 1A (repository and tooling) done; WP 1B (Docker environment) files delivered, pending owner verification. No application code yet. See `docs/SESSION-HANDOFF.md` for the exact current state and next task.
+Phase 1 (Project Foundation) in progress. WP 1A (tooling) and WP 1B (Docker environment) verified. WP 1C (Laravel base) delivered, pending owner verification. No business features yet. See `docs/SESSION-HANDOFF.md` for the exact current state and next task.
 
 ## Stack
 Laravel (PHP 8.4) REST API under `/api/v1` | Vue 3 + TypeScript SPA (Vite, Tailwind, Pinia) | PostgreSQL | Redis | Docker | Android (Java) scanner app (Phase 6).
@@ -27,7 +27,8 @@ Laravel (PHP 8.4) REST API under `/api/v1` | Vue 3 + TypeScript SPA (Vite, Tailw
 2. In Ubuntu, inside the repository: `sudo apt install -y make`, then `make env` (creates `.env`; review the values), then `make up`.
 3. Run `make verify` to execute the WP 1B acceptance checks. See `docker/README.md` for services, ports and database roles.
 
-Application setup instructions arrive with WP 1C.
+4. Install the backend (one time): `make backend-install`, then `make migrate`.
+5. Run the WP 1C checks: `make verify-1c`. Daily commands: `make up-app`, `make test`, `make lint`, `make format`, `make artisan c="..."`.
 
 ## Documentation
 Start with `docs/SRS.md`, `docs/ARCHITECTURE.md`, `docs/PHASE-1-PLAN.md` and `docs/SESSION-HANDOFF.md`.

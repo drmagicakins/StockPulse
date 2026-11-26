@@ -96,3 +96,8 @@ These are small, additive changes to the approved work packages, not new scope:
 - PostgreSQL major 18 (not 17): latest major with a confirmed official image; 19.0 not yet adopted (see ARCHITECTURE D9).
 - MinIO replaced by RustFS for dev object storage (see D10).
 - Database roles: `stockpulse_owner` (migrations) and `stockpulse_app` (runtime, subject to RLS); `stockpulse_test` database for the tenant-leak suite.
+
+## 16. WP 1C decisions (2026-11-25)
+- Laravel 13, central migrations, Larastan level 6 (rising), and the approved package list: Horizon, league/flysystem-aws-s3-v3, brick/math, Pest + pest-plugin-laravel, Larastan, Pint. Sanctum waits for WP 1E.
+- Deviations from the plan text, with reasons: (1) brick/math is installed but first used in Phase 3/5; (2) the session round trip is deferred to WP 1E because the API group has no session middleware (sessions are configured for Redis but not exercised yet); (3) the `storage` test group is excluded in CI and verified locally against RustFS.
+- Core module provides: request ids, JSON error format, rate limiting by IP, health endpoint with real checks, base Service/ApiFormRequest (deny by default)/ApiResource classes.

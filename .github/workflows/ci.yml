@@ -1,5 +1,6 @@
-# WP 1A skeleton. Jobs skip cleanly until backend/ and frontend/ contain a project.
-# Lint, static analysis and test steps are added in WP 1C (backend) and WP 1H (frontend).
+# Jobs skip cleanly until backend/ and frontend/ contain a project.
+# Backend job: lint, static analysis and tests against real PostgreSQL 18 and Redis service containers.
+# The `storage` test group (needs S3-compatible storage) is excluded here and verified locally.
 name: CI
 
 on:
@@ -31,6 +32,44 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_DB: stockpulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: testing
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_DATABASE: stockpulse
+      DB_USERNAME: stockpulse_app
+      DB_PASSWORD: ci-app-password
+      DB_OWNER_HOST: 127.0.0.1
+      DB_OWNER_PORT: "5432"
+      DB_OWNER_DATABASE: stockpulse
+      DB_OWNER_USERNAME: stockpulse_owner
+      DB_OWNER_PASSWORD: ci-owner-password
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
     steps:
       - uses: actions/checkout@v6
       - id: detect
@@ -41,7 +80,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, gd, redis, zip
+          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, gd, redis, zip, pcntl
           tools: composer:v2
       - if: steps.detect.outputs.present == 'true'
         run: composer validate --strict
@@ -49,6 +88,32 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
       - if: steps.detect.outputs.present == 'true'
         run: composer audit
+      - name: Create database roles (same script as the local Docker stack)
+        if: steps.detect.outputs.present == 'true'
+        working-directory: .
+        env:
+          PGHOST: 127.0.0.1
+          PGPASSWORD: ci-postgres-password
+          POSTGRES_USER: postgres
+          POSTGRES_DB: stockpulse
+          DB_OWNER_PASSWORD: ci-owner-password
+          DB_APP_PASSWORD: ci-app-password
+        run: bash docker/postgres/init/01-roles-databases.sh
+      - name: Application key
+        if: steps.detect.outputs.present == 'true'
+        run: echo "APP_KEY=$(php artisan key:generate --show)" >> "$GITHUB_ENV"
+      - name: Migrate as the owner role
+        if: steps.detect.outputs.present == 'true'
+        run: php artisan migrate --database=pgsql_owner --force
+      - name: Code style (Pint)
+        if: steps.detect.outputs.present == 'true'
+        run: ./vendor/bin/pint --test
+      - name: Static analysis (Larastan)
+        if: steps.detect.outputs.present == 'true'
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Tests (Pest)
+        if: steps.detect.outputs.present == 'true'
+        run: ./vendor/bin/pest --colors=never --exclude-group=storage
 
   frontend:
     name: Frontend (Vue)

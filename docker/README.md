@@ -10,7 +10,7 @@ Local development stack for StockPulse (WP 1B). Compose file: `../docker-compose
 | rustfs | S3-compatible storage, DEV ONLY (pre-1.0) | default | 9000 (API), 9001 (console) |
 | storage-init | One-shot bucket creation | default | none |
 | mailpit | Dev mail catcher | default | 8025 (UI), 1025 (SMTP) |
-| app, nginx, queue, scheduler, node | Laravel runtime and tooling (need `backend/`, WP 1C) | `app` | 8080 (nginx), 5173 (vite) |
+| app, nginx, horizon, scheduler, node | Laravel runtime and tooling (need the backend: `make backend-install`) | `app` | 8080 (nginx), 5173 (vite) |
 
 ## Database roles
 - `postgres` (superuser): bootstrap and maintenance only. Never used by the application.
@@ -20,7 +20,12 @@ Local development stack for StockPulse (WP 1B). Compose file: `../docker-compose
 - The init script runs only when the data volume is empty. To re-run it: `make reset-db`.
 
 ## Everyday commands
-`make env` (once) | `make up` | `make up-pool` | `make ps` | `make logs s=postgres` | `make psql` | `make verify` | `make down`
+`make env` (once) | `make backend-install` (once) | `make up-app` | `make migrate` | `make test` | `make lint` | `make format` | `make artisan c="..."` | `make psql` | `make ps` | `make logs s=horizon` | `make down`
+
+## Database connections in Laravel
+- `pgsql` (runtime): role `stockpulse_app` through PgBouncer (transaction pooling).
+- `pgsql_owner` (migrations only): role `stockpulse_owner`, direct to PostgreSQL, because migrations use session-level locks that transaction pooling would break.
+- Horizon dashboard assets are not committed; publish them with `make artisan c="horizon:publish"`.
 
 ## Notes and limits
 - DEV ONLY: HTTP, dev passwords, loopback-bound ports. Production deployment is designed separately.

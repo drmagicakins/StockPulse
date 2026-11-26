@@ -85,6 +85,10 @@ Decoupled Vue 3 + TS + Vite + Tailwind + Pinia + Vue Router SPA (recommended; pe
 | D8 | Development environment: Windows + WSL2 Ubuntu + Docker Desktop; repo in the Ubuntu filesystem; runtimes in containers (see DEV_ENVIRONMENT.md) | Approved by owner (2026-11-23) |
 | D9 | PostgreSQL major 18 for development and initial production (18.7 current). 19.0 was released 2026-11-19; adopt after a stable official Docker image and PgBouncer/driver compatibility are confirmed. Version is set by POSTGRES_VERSION. | Owner asked for latest working version; 18 chosen on evidence (2026-11-24) |
 | D10 | Dev S3-compatible storage: RustFS (pre-1.0, dev only). MinIO community images were withdrawn. Application uses only the S3 API; production uses a managed or self-hosted S3-compatible service. | Proposed 2026-11-24 |
+| D11 | Laravel 13 (current stable; supports PHP 8.3-8.5; Laravel 12 bug fixes ended 2026-08, Laravel 14 expected 2027) | Approved by owner (2026-11-25) |
+| D12 | Runtime DB connection via PgBouncer as `stockpulse_app`; migrations on a separate `pgsql_owner` connection direct to PostgreSQL (session-level locks) | Approved by owner (2026-11-25) |
+| D13 | Migrations stay in the central `database/migrations`, named by module | Approved by owner (2026-11-25) |
+| D14 | Static analysis starts at Larastan level 6 and is raised toward 8 as the code matures | Approved by owner (2026-11-25) |
 
 ## 14. Scale targets and design consequences
 Capacity targets per business (design targets, not proven performance): 1 to 500+ branches; 10,000 to 1,000,000+ SKUs; 1,000 to 100,000+ transactions per day across all branches; many concurrent users. Platform: hundreds to thousands of tenants, scalable further.
