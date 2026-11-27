@@ -1,0 +1,14 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Start at a moderate level and raise it as the codebase matures (target: 8).
+    level: 6
+    paths:
+        - app
+        - routes
+    ignoreErrors:
+        # Remove this entry as soon as the first queued job uses the trait.
+        -
+            identifier: trait.unused
+            path: app/Modules/Core/Tenancy/RunsInTenantContext.php

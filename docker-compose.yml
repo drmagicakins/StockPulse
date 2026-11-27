@@ -1,0 +1,194 @@
+# StockPulse local development stack (WP 1B).
+# Infrastructure (postgres, redis, rustfs, mailpit) runs by default.
+# Profile "pool": PgBouncer.  Profile "app": php-fpm, nginx, horizon (queues), scheduler, node (needs the backend: make backend-install).
+# DEV ONLY: all published ports are bound to 127.0.0.1. Do not use this file as-is in production.
+name: stockpulse
+
+x-php-runtime: &php-runtime
+  image: stockpulse/app:dev
+  working_dir: /var/www/html
+  volumes:
+    - ./backend:/var/www/html
+  networks: [stockpulse]
+  environment:
+    TZ: UTC
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-18}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env - run make env}"
+      POSTGRES_DB: ${POSTGRES_DB:-stockpulse}
+      DB_OWNER_PASSWORD: "${DB_OWNER_PASSWORD:?Set DB_OWNER_PASSWORD in .env}"
+      DB_APP_PASSWORD: "${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}"
+    volumes:
+      # PostgreSQL 18+ images keep versioned data under /var/lib/postgresql
+      - pg_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    networks: [stockpulse]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  pgbouncer:
+    profiles: [pool]
+    build:
+      context: ./docker/pgbouncer
+    image: stockpulse/pgbouncer:dev
+    restart: unless-stopped
+    environment:
+      DB_OWNER_PASSWORD: "${DB_OWNER_PASSWORD:?Set DB_OWNER_PASSWORD in .env}"
+      DB_APP_PASSWORD: "${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PGBOUNCER_PORT:-6433}:6432"
+    networks: [stockpulse]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 6432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env - run make env}"
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    networks: [stockpulse]
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # S3-compatible storage for DEV ONLY (MinIO community images were withdrawn in 2025-2026).
+  # RustFS is pre-1.0 (release candidates): do not use for production data.
+  rustfs:
+    image: ${RUSTFS_IMAGE:-rustfs/rustfs:latest}
+    restart: unless-stopped
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_EXTERNAL_ADDRESS: ":9000"
+      RUSTFS_ACCESS_KEY: "${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}"
+      RUSTFS_SECRET_KEY: "${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}"
+      RUSTFS_LOG_LEVEL: info
+    volumes:
+      - rustfs_data:/data
+    ports:
+      - "127.0.0.1:${S3_API_PORT:-9000}:9000"
+      - "127.0.0.1:${S3_CONSOLE_PORT:-9001}:9001"
+    networks: [stockpulse]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  # One-shot job: creates the dev bucket if it does not exist, then exits.
+  storage-init:
+    image: ${AWSCLI_IMAGE:-amazon/aws-cli:latest}
+    restart: "no"
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: "${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}"
+      AWS_SECRET_ACCESS_KEY: "${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}"
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-stockpulse-dev}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket "$$S3_BUCKET" 2>/dev/null
+        || aws --endpoint-url http://rustfs:9000 s3api create-bucket --bucket "$$S3_BUCKET"
+    networks: [stockpulse]
+
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+    networks: [stockpulse]
+
+  # ---- profile "app": needs backend/ (WP 1C). Image can be built and checked now. ----
+  app:
+    <<: *php-runtime
+    profiles: [app]
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+
+  nginx:
+    profiles: [app]
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "127.0.0.1:${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx:/etc/nginx/conf.d:ro
+      - ./backend/public:/var/www/html/public:ro
+    networks: [stockpulse]
+
+  horizon:
+    <<: *php-runtime
+    profiles: [app]
+    pull_policy: never
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: ["php", "artisan", "horizon"]
+
+  scheduler:
+    <<: *php-runtime
+    profiles: [app]
+    pull_policy: never
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+
+  node:
+    profiles: [app]
+    image: node:22-alpine
+    working_dir: /app
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "127.0.0.1:${VITE_PORT:-5173}:5173"
+    command: ["sh", "-c", "sleep infinity"]   # replaced by the Vite dev server in WP 1H
+    networks: [stockpulse]
+
+volumes:
+  pg_data:
+  redis_data:
+  rustfs_data:
+
+networks:
+  stockpulse:

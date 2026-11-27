@@ -1,0 +1,19 @@
+# Install once:  pipx install pre-commit && pre-commit install
+# Update pins:   pre-commit autoupdate
+# PHP and frontend linters are added in WP 1C and WP 1H.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: '\.(ps1|bat|cmd)$'
