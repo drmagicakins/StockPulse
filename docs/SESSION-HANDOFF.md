@@ -3,7 +3,7 @@
 Last updated: 2026-11-23
 
 ## Current phase
-Phase 1 in progress. WP 1A and WP 1B verified (1B: 16/16 checks passed on the owner's machine; CI green). WP 1C verified by the owner (make verify-1c: 14 passed, 0 failed, 1 skipped = CI check). No business features yet.
+Phase 1 in progress. WP 1A, 1B, 1C verified (1C: make verify-1c 14 passed, 0 failed, 1 skipped; CI green). WP 1D (tenancy core) approved and delivered; NOT yet verified by the owner. No business features yet.
 
 ## Environment checks (owner-run preflight, 2026-11-23, Windows host)
 New project; repo has one initial commit on `main`; no app code. PHP 8.4.14 (Herd), Composer 2.8.12, Node 20.19.6, npm 11.7.0, Docker 29.7.2, Compose v5.4.0, psql not installed (fine, Postgres runs in Docker), Java 1.8 (Android phase needs 17+), WSL had only docker-desktop (Ubuntu to be installed). All required PHP extensions present on host. No blocking incompatibilities. Note: Node 20 EOL; use Node 22+ in containers/CI (CI skeleton already uses 22). Laravel stable version to be verified at install in WP 1C.
@@ -43,15 +43,13 @@ D8: Development in WSL2 Ubuntu + Docker Desktop (owner-approved).
 VERIFIED 2026-11-24: `make verify` 16 passed, 0 failed (PostgreSQL 18, PgBouncer, Redis 8, RustFS, Mailpit, PHP 8.4.28 image). Committed and pushed; CI green. Not yet exercised: nginx, horizon, scheduler, node services (they start in WP 1C).
 
 ## WP 1C status
-Delivered, unverified: scripts/install-backend.sh (+ backend-env.sh, backend-overlay), verify-1c.sh, updated docker-compose.yml (queue replaced by horizon), Makefile, CI backend job, docs. The author could not run Composer or Docker; only PHP syntax (php -l), YAML/XML/JSON parsing, bash syntax and the .env generator (scratch copy) were checked. Everything else is unrun until the owner runs `make backend-install` and `make verify-1c`. Expect first-run issues (Laravel 13 package compatibility, skeleton differences, Pint/Larastan findings).
-Decisions: D11 Laravel 13, D12 runtime via PgBouncer + owner connection for migrations, D13 central migrations, D14 Larastan level 6.
+VERIFIED 2026-11-26 on the owner's machine: 14 passed, 0 failed, 1 skipped (CI, since confirmed green). Pest 27 tests. Laravel 13.44.1, Horizon 5.52.0, Pest 4.7.8, PHPUnit 12.5.33, Larastan 3.15.0 (level 6), Pint 1.32.3, brick/math 1.0.0. Committed as 93b82cb. Skeleton AI-instruction files (backend/AGENTS.md, CLAUDE.md) were replaced with StockPulse rules.
+
+## WP 1D status
+Delivered, unverified by the owner. Author-side checks: php -l on every PHP file; the exact SQL produced by the RowLevelSecurity helper plus the repo's init script were run against a real PostgreSQL 16 (23 isolation checks passed: cross-tenant read/insert/update/delete blocked, no-context returns zero rows, owner sees no tenant rows, businesses write-protected, setting cleared after commit/rollback, schema guard query flags unprotected tables). NOT run by the author: any PHP/Laravel code, Pest tests, Pint, Larastan, PostgreSQL 18 (so uuidv7() is unverified), PgBouncer.
+Decisions D15-D19 in ARCHITECTURE.md. Limits in ARCHITECTURE.md section 17.
 
 ## Exact next task
-1. Owner: unzip wp-1c.zip into the repo root, `chmod +x scripts/*.sh`, `make backend-install`, `make migrate`, `make verify-1c`, paste the output. Fix failures from real output.
-2. When all checks pass: commit (pre-commit hooks may modify skeleton files once; re-add and re-commit), push, confirm CI (backend job now runs for real).
-3. Then WP 1D (tenancy core: businesses table, tenant scope, RLS policies, tenant context middleware, tenant-leak tests). Needs owner approval of its plan first.
-
-## WP 1C verification (2026-11-26)
-VERIFIED on the owner's machine: `make verify-1c` = 14 passed, 0 failed, 1 skipped (CI). Pest: 27 tests, 54 assertions. Installed: Laravel 13.44.1, Horizon 5.52.0, Pest 4.7.8, PHPUnit 12.5.33, Larastan 3.15.0 (level 6), Pint 1.32.3, brick/math 1.0.0.
-Fixes applied after the first run: request-id middleware made global (unmatched routes now carry a request id); Redis queue test payload given an id (Horizon requires it).
-Pending: first real CI run of the backend job (confirm on GitHub).
+1. Owner: unzip wp-1d.zip into the repo root, `make format`, `make verify-1d`, paste the output tail. Fix failures from real output.
+2. When green: commit, push, confirm CI (the backend job now migrates the test database).
+3. Then plan WP 1E (identity and access: users, memberships, roles/permissions, Sanctum, MFA, the real TenantResolver, platform role `stockpulse_platform`). Needs owner approval of its plan first.

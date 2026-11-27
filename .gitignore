@@ -67,3 +67,6 @@ verify-1b.log
 verify-1c.log
 # Horizon dashboard assets are generated: run `make artisan c="horizon:publish"` (and in deployments)
 /backend/public/vendor/horizon/
+
+# WP 1D
+verify-1d.log

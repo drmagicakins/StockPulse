@@ -105,6 +105,11 @@ jobs:
       - name: Migrate as the owner role
         if: steps.detect.outputs.present == 'true'
         run: php artisan migrate --database=pgsql_owner --force
+      - name: Migrate the test database as the owner role
+        if: steps.detect.outputs.present == 'true'
+        env:
+          DB_OWNER_DATABASE: stockpulse_test
+        run: php artisan migrate --database=pgsql_owner --force
       - name: Code style (Pint)
         if: steps.detect.outputs.present == 'true'
         run: ./vendor/bin/pint --test

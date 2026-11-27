@@ -58,3 +58,9 @@ Note: the sales `uuid` and sync-friendly columns (client_uuid, device_id, synced
 - Confirm UUIDv7 generation approach (PHP library vs PG extension).
 - Decide per-business vs per-branch document sequences.
 - Tax model: inclusive/exclusive, multi-rate per product.
+
+## 7. Implemented in WP 1D (authoritative where it differs from the sketches above)
+**businesses**: id bigserial PK; uuid UUIDv7 default `uuidv7()` (PostgreSQL 18), unique; name; legal_name null; registration_no null unique; status varchar(20) default 'pending' with CHECK in (pending, active, suspended, expired); currency char(3) default 'NGN'; timezone default 'Africa/Lagos'; timestamptz created_at/updated_at. RLS enabled (not forced): policy `tenant_own_row` FOR SELECT TO stockpulse_app USING (id = current tenant). INSERT/UPDATE/DELETE revoked from stockpulse_app (writes via owner now, platform role from WP 1E; own-profile updates with column grants are planned for the business-profile work package).
+**business_settings**: id; business_id FK -> businesses (ON DELETE RESTRICT); key varchar(100); value jsonb; timestamptz created_at/updated_at; UNIQUE (business_id, key). RLS enabled and FORCED: policy `tenant_isolation` FOR ALL TO stockpulse_app USING and WITH CHECK (business_id = current tenant). The owner role has no policy, so it sees no tenant rows.
+**Tenant predicate** (single source: App\Modules\Core\Database\RowLevelSecurity): `business_id = nullif(current_setting('app.current_business_id', true), '')::bigint`. Unset or empty means NULL, which matches nothing (fails closed).
+**Rule for every future tenant table**: create it in a migration, then call `RowLevelSecurity::tenantTable('<table>')`, and put `BelongsToBusiness` on its model. The test suite fails if either is forgotten.

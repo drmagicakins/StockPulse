@@ -3,7 +3,7 @@ DC = $(COMPOSE) --profile pool --profile app
 .DEFAULT_GOAL := help
 
 .PHONY: help env config up up-pool up-app infra down ps logs build shell psql psql-app verify reset-db \
-        backend-install artisan composer migrate test lint format stan verify-1c
+        backend-install artisan composer migrate migrate-test test lint format stan verify-1c verify-1d
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -69,7 +69,10 @@ composer: ## Run composer (usage: make composer c="show --direct")
 migrate: infra ## Run migrations as the owner role
 	$(COMPOSE) run --rm app php artisan migrate --database=pgsql_owner --force
 
-test: infra ## Run the Pest test suites
+migrate-test: infra ## Migrate the test database (stockpulse_test) as the owner role
+	$(COMPOSE) run --rm -e DB_OWNER_DATABASE=stockpulse_test app php artisan migrate --database=pgsql_owner --force
+
+test: infra migrate-test ## Run the Pest test suites (migrates the test database first)
 	$(COMPOSE) run --rm app ./vendor/bin/pest
 
 lint: infra ## Check code style (Pint) and static analysis (Larastan)
@@ -84,3 +87,6 @@ stan: ## Static analysis only
 
 verify-1c: ## Run the WP 1C acceptance checks (output saved to verify-1c.log)
 	bash scripts/verify-1c.sh 2>&1 | tee verify-1c.log
+
+verify-1d: ## Run the WP 1D acceptance checks (output saved to verify-1d.log)
+	bash scripts/verify-1d.sh 2>&1 | tee verify-1d.log

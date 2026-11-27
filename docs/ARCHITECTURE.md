@@ -89,6 +89,11 @@ Decoupled Vue 3 + TS + Vite + Tailwind + Pinia + Vue Router SPA (recommended; pe
 | D12 | Runtime DB connection via PgBouncer as `stockpulse_app`; migrations on a separate `pgsql_owner` connection direct to PostgreSQL (session-level locks) | Approved by owner (2026-11-25) |
 | D13 | Migrations stay in the central `database/migrations`, named by module | Approved by owner (2026-11-25) |
 | D14 | Static analysis starts at Larastan level 6 and is raised toward 8 as the code matures | Approved by owner (2026-11-25) |
+| D15 | Tenant requests run in ONE transaction with a transaction-local setting (set_config(..., true)); PgBouncer-safe. Long work (exports, reports) runs as queued jobs. Any response with status 400 or above rolls the whole request back: Laravel's routing pipeline turns exceptions into error responses before they reach the middleware, so the middleware checks the status (found by a test on 2026-11-27, fixed in the same WP). | Approved by owner (2026-11-26) |
+| D16 | Forced row-level security on every tenant table (policy for the runtime role only, so the owner role sees no tenant rows). `businesses`: runtime role may only read its own row and cannot write; not forced so the owner can manage rows. | Approved by owner (2026-11-26) |
+| D17 | Tenant models fail closed: querying or creating without a tenant context throws; the database independently returns zero rows. | Approved by owner (2026-11-26) |
+| D18 | Tenant settings are a key/value table (`business_settings`, jsonb values). | Approved by owner (2026-11-26) |
+| D19 | Cross-tenant platform access is deferred to WP 1E via a separate `stockpulse_platform` database role (needs a role-setup change, proposed as its own step). | Approved by owner (2026-11-26) |
 
 ## 14. Scale targets and design consequences
 Capacity targets per business (design targets, not proven performance): 1 to 500+ branches; 10,000 to 1,000,000+ SKUs; 1,000 to 100,000+ transactions per day across all branches; many concurrent users. Platform: hundreds to thousands of tenants, scalable further.
@@ -114,3 +119,10 @@ Capacity targets per business (design targets, not proven performance): 1 to 500
 
 ## 16. Payment gateway interface (Paystack, Flutterwave, Stripe)
 Unified `PaymentGateway` contract: `initiate`, `verify`, `handleWebhook` (signature + timestamp + replay checks), `refund`, `reconcile`, `supportedCurrencies/Countries`. Idempotency keys on initiation and refund; provider reference and internal reference stored on `payment_transactions`; amounts as integer minor units at the provider boundary; currency handled per business and per transaction. Per-business enablement and routing rules (e.g. NGN to Paystack/Flutterwave, international to Stripe) are configuration, subject to each provider's country, currency and account eligibility. Adding a provider means adding an adapter only.
+
+
+## 17. Tenancy limits (read before relying on it)
+- Row-level security keyed on a session setting protects against APPLICATION BUGS (a forgotten filter, a missing scope). It does not stop SQL injection: injected SQL could change the setting. Parameterised queries and the no-raw-SQL rule remain mandatory.
+- A tenant request holds one pooled connection for its whole duration. Heavy exports and reports must be queued jobs. Streamed responses are not supported inside the tenant transaction.
+- A request that ends with an error response (status 400 or above, including validation and authorization failures) rolls back everything it wrote. Anything that must survive an error (failed-login counters, security events, audit of denied actions) must be written outside the tenant transaction, e.g. on a separate connection or a queued job (WP 1G).
+- The tenant id is never read from request input. SaaS: derived from authenticated membership (WP 1E); private: from configuration.

@@ -7,7 +7,7 @@ StockPulse is an enterprise supermarket management and intelligent inventory pla
 Owned, developed and operated by **Mart Code International Technologies Limited**.
 
 ## Status
-Phase 1 (Project Foundation) in progress. WP 1A (tooling) and WP 1B (Docker environment) verified. WP 1C (Laravel base) delivered, pending owner verification. No business features yet. See `docs/SESSION-HANDOFF.md` for the exact current state and next task.
+Phase 1 (Project Foundation) in progress. WP 1A (tooling), WP 1B (Docker environment) verified. WP 1C (Laravel base) verified. WP 1D (tenancy core) delivered, pending owner verification. No business features yet. See `docs/SESSION-HANDOFF.md` for the exact current state and next task.
 
 ## Stack
 Laravel (PHP 8.4) REST API under `/api/v1` | Vue 3 + TypeScript SPA (Vite, Tailwind, Pinia) | PostgreSQL | Redis | Docker | Android (Java) scanner app (Phase 6).

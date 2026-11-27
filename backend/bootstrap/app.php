@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Core\Exceptions\ApiExceptionHandler;
 use App\Modules\Core\Http\Middleware\AssignRequestId;
+use App\Modules\Core\Http\Middleware\SetTenantContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global (not only the api group) so that unmatched routes (404/405) also get a request id.
         $middleware->prepend(AssignRequestId::class);
         $middleware->throttleApi();
+
+        // Route middleware for tenant-scoped endpoints: ->middleware('tenant')
+        $middleware->alias(['tenant' => SetTenantContext::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         ApiExceptionHandler::register($exceptions);

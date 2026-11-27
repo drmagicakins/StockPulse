@@ -8,4 +8,5 @@ umask 077
   printf '"stockpulse_owner" "%s"\n' "$DB_OWNER_PASSWORD"
   printf '"stockpulse_app" "%s"\n' "$DB_APP_PASSWORD"
 } > /etc/pgbouncer/userlist.txt
+rm -f /var/run/pgbouncer/pgbouncer.pid
 exec pgbouncer /etc/pgbouncer/pgbouncer.ini

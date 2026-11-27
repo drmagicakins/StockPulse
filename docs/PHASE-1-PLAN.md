@@ -101,3 +101,8 @@ These are small, additive changes to the approved work packages, not new scope:
 - Laravel 13, central migrations, Larastan level 6 (rising), and the approved package list: Horizon, league/flysystem-aws-s3-v3, brick/math, Pest + pest-plugin-laravel, Larastan, Pint. Sanctum waits for WP 1E.
 - Deviations from the plan text, with reasons: (1) brick/math is installed but first used in Phase 3/5; (2) the session round trip is deferred to WP 1E because the API group has no session middleware (sessions are configured for Redis but not exercised yet); (3) the `storage` test group is excluded in CI and verified locally against RustFS.
 - Core module provides: request ids, JSON error format, rate limiting by IP, health endpoint with real checks, base Service/ApiFormRequest (deny by default)/ApiResource classes.
+
+## 17. WP 1D decisions (2026-11-26)
+Approved: transaction per tenant request with SET LOCAL; forced RLS on tenant tables with `businesses` readable only for the tenant's own row; fail-closed tenant queries; key/value settings; platform role deferred to WP 1E.
+Deviation from the plan text: there is no dedicated "without tenant scope" escape hatch. Native `withoutGlobalScope(s)` and the tenant setting name are banned outside the tenancy module by an architecture test (file scan); platform access will use a separate database role in WP 1E.
+Delivered building blocks: TenantContext, TenantScope, BelongsToBusiness, TenantResolver (+ DenyAll and Fixed implementations), SetTenantContext middleware (alias `tenant`), RestoreTenantContext job middleware, RowLevelSecurity migration helper, DeploymentMode validation, businesses and business_settings tables.

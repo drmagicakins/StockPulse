@@ -138,6 +138,7 @@ services:
   app:
     <<: *php-runtime
     profiles: [app]
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/php/Dockerfile

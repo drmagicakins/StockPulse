@@ -7,3 +7,8 @@ parameters:
     paths:
         - app
         - routes
+    ignoreErrors:
+        # Remove this entry as soon as the first queued job uses the trait.
+        -
+            identifier: trait.unused
+            path: app/Modules/Core/Tenancy/RunsInTenantContext.php
